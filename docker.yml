@@ -1,0 +1,61 @@
+- name: Docker Configuration 
+  hosts: docker 
+  tasks:
+   - name: Check if docker is present
+     package_facts:
+       manager: auto
+
+   - name: Configuring Docker Repo
+     yum_repository:
+       name: "docker"
+       description: "Docker Repo"
+       baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+       gpgcheck: no
+       state: present
+
+   - name: Installing Docker
+     command:
+       cmd: "yum install docker-ce -y --nobest"
+     when: "'docker-ce' not in ansible_facts.packages"
+
+   - name: Enable Docker Services 
+     service:
+       name: docker 
+       state: started
+       enabled: yes
+
+   - name: Installing python
+     package:
+       name: python3
+       state: present
+
+   - name: Installing docker python package
+     pip:
+       name: docker
+
+   - name: Pulling Httpd image
+     docker_image:
+       name: "httpd:latest"
+       source: pull
+
+   - name: Create a directory for the Mount 
+     file:
+       name: "/webserver"
+       state: directory
+
+   - name: Copy the contents to the directory
+     copy:
+       src: demo.html 
+       dest: /webserver/demo.html
+
+   - name: Create a container 
+     docker_container:
+       name: myweb1
+       image: httpd:latest
+       ports: 8080:80
+       detach: yes
+       volumes: 
+       - /webserver:/usr/local/apache2/htdocs/ 
+       state: started 
+
+
